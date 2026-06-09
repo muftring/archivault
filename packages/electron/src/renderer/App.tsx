@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { FileWithMeta } from '@s3sync/core';
+import type { FileWithMeta } from '@archivault/core';
 
 type View = 'files' | 'upload' | 'settings';
 
 declare global {
   interface Window {
-    s3sync: {
+    archivault: {
       config: { load: () => Promise<Record<string, string>>; save: (u: Record<string, string>) => Promise<void> };
       files: {
         list: (opts: Record<string, unknown>) => Promise<FileWithMeta[]>;
@@ -34,7 +34,7 @@ export function App(): React.ReactElement {
   const loadFiles = useCallback(async () => {
     setLoading(true);
     try {
-      const results = await window.s3sync.files.list({
+      const results = await window.archivault.files.list({
         fileName: search || undefined,
         limit: 200,
         orderBy: 'uploaded_at',
@@ -51,12 +51,12 @@ export function App(): React.ReactElement {
   }, [loadFiles]);
 
   const handleUpload = async () => {
-    const dir = await window.s3sync.dialog.openDirectory();
+    const dir = await window.archivault.dialog.openDirectory();
     if (!dir) return;
-    const config = await window.s3sync.config.load();
+    const config = await window.archivault.config.load();
     setView('upload');
     try {
-      await window.s3sync.files.upload({ bucket: config['bucket'], filePath: dir });
+      await window.archivault.files.upload({ bucket: config['bucket'], filePath: dir });
       await loadFiles();
       setView('files');
     } catch (e) {
@@ -66,10 +66,10 @@ export function App(): React.ReactElement {
   };
 
   const handleDownload = async (file: FileWithMeta) => {
-    const dir = await window.s3sync.dialog.openDirectory();
+    const dir = await window.archivault.dialog.openDirectory();
     if (!dir) return;
     try {
-      const result = await window.s3sync.files.download(file.id, dir);
+      const result = await window.archivault.files.download(file.id, dir);
       const integrity = result.checksumMatch === true ? ' ✔ Integrity verified.' : result.checksumMatch === false ? ' ✖ Checksum mismatch!' : '';
       alert(`Downloaded to: ${result.destPath}${integrity}`);
     } catch (e) {
@@ -180,11 +180,11 @@ function SettingsView(): React.ReactElement {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    window.s3sync.config.load().then(setConfig);
+    window.archivault.config.load().then(setConfig);
   }, []);
 
   const handleSave = async () => {
-    await window.s3sync.config.save(config);
+    await window.archivault.config.save(config);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

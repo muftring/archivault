@@ -1,5 +1,5 @@
 {
-  "name": "@s3sync/electron",
+  "name": "@archivault/electron",
   "version": "1.0.0",
   "private": true,
   "main": "dist/main.js",
@@ -11,7 +11,7 @@
     "dist": "electron-builder"
   },
   "dependencies": {
-    "@s3sync/core": "*",
+    "@archivault/core": "*",
     "electron-store": "^8.2.0"
   },
   "devDependencies": {
@@ -29,7 +29,7 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.s3sync.app",
+    "appId": "com.archivault.app",
     "productName": "S3 Sync",
     "files": ["dist/**/*", "src/renderer/index.html"],
     "directories": { "output": "release" },

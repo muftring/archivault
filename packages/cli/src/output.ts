@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import cliProgress from 'cli-progress';
-import { formatBytes } from '@s3sync/core';
+import { formatBytes } from '@archivault/core';
 
 export const log = {
   info: (msg: string) => console.log(chalk.cyan('ℹ'), msg),

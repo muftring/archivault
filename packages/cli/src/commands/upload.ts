@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { uploadFile, loadConfig, getDb, formatBytes } from '@s3sync/core';
+import { uploadFile, loadConfig, getDb, formatBytes } from '@archivault/core';
 import { log, createProgressBar } from '../output';
 import chalk from 'chalk';
 
@@ -23,7 +23,7 @@ export function makeUploadCommand(): Command {
       const bucket = opts.bucket ?? config.bucket;
 
       if (!bucket) {
-        log.error('No bucket specified. Use --bucket or run: s3sync config --bucket <name>');
+        log.error('No bucket specified. Use --bucket or run: archivault config --bucket <name>');
         process.exit(1);
       }
 

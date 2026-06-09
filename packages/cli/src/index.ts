@@ -9,7 +9,7 @@ import { makeConfigCommand, makeTagCommand, makePropertyCommand } from './comman
 const program = new Command();
 
 program
-  .name('s3sync')
+  .name('archivault')
   .description('Upload and download files to/from AWS S3 with full metadata tracking')
   .version('1.0.0');
 

@@ -13,8 +13,8 @@ import {
   setProperty,
   removeProperty,
   updateFileStatus,
-} from '@s3sync/core';
-import type { ListFilesOptions, UploadOptions } from '@s3sync/core';
+} from '@archivault/core';
+import type { ListFilesOptions, UploadOptions } from '@archivault/core';
 
 let mainWindow: BrowserWindow | null = null;
 

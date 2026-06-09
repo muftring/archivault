@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { listFiles, getFileById, loadConfig, getDb, formatBytes } from '@s3sync/core';
+import { listFiles, getFileById, loadConfig, getDb, formatBytes } from '@archivault/core';
 import { log, formatFileRow } from '../output';
 import chalk from 'chalk';
 

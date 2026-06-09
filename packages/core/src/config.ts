@@ -11,7 +11,7 @@ export interface AppConfig {
   endpoint?: string;
 }
 
-const CONFIG_DIR = join(homedir(), '.s3sync');
+const CONFIG_DIR = join(homedir(), '.archivault');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 const DEFAULTS: AppConfig = {

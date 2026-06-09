@@ -9,7 +9,7 @@ import {
   loadConfig,
   getDb,
   formatBytes,
-} from '@s3sync/core';
+} from '@archivault/core';
 import { log } from '../output';
 import chalk from 'chalk';
 
@@ -32,7 +32,7 @@ export function makeVerifyCommand(): Command {
         endpoint: config.endpoint,
       };
 
-      const tmpDir = join(tmpdir(), 's3sync-verify');
+      const tmpDir = join(tmpdir(), 'archivault-verify');
       mkdirSync(tmpDir, { recursive: true });
 
       let filesToVerify = await listFiles({

@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ListFilesOptions, UploadOptions } from '@s3sync/core';
+import type { ListFilesOptions, UploadOptions } from '@archivault/core';
 
-contextBridge.exposeInMainWorld('s3sync', {
+contextBridge.exposeInMainWorld('archivault', {
   config: {
     load: () => ipcRenderer.invoke('config:load'),
     save: (updates: Record<string, string>) => ipcRenderer.invoke('config:save', updates),

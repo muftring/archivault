@@ -1,11 +1,11 @@
 import { Command } from 'commander';
-import { loadConfig, saveConfig, configPath } from '@s3sync/core';
+import { loadConfig, saveConfig, configPath } from '@archivault/core';
 import { log } from '../output';
 import chalk from 'chalk';
 
 export function makeConfigCommand(): Command {
   return new Command('config')
-    .description('View or update s3sync configuration')
+    .description('View or update archivault configuration')
     .option('--bucket <bucket>', 'Default S3 bucket name')
     .option('--region <region>', 'AWS region')
     .option('--profile <profile>', 'AWS profile (from ~/.aws/config)')
@@ -51,7 +51,7 @@ export function makeTagCommand(): Command {
     .command('add <file-id> <tag>')
     .description('Add a tag to a file')
     .action(async (fileId: string, tag: string) => {
-      const { addTag, getDb, loadConfig } = await import('@s3sync/core');
+      const { addTag, getDb, loadConfig } = await import('@archivault/core');
       const config = loadConfig();
       getDb(config.dbPath);
       await addTag(fileId, tag);
@@ -62,7 +62,7 @@ export function makeTagCommand(): Command {
     .command('remove <file-id> <tag>')
     .description('Remove a tag from a file')
     .action(async (fileId: string, tag: string) => {
-      const { removeTag, getDb, loadConfig } = await import('@s3sync/core');
+      const { removeTag, getDb, loadConfig } = await import('@archivault/core');
       const config = loadConfig();
       getDb(config.dbPath);
       await removeTag(fileId, tag);
@@ -79,7 +79,7 @@ export function makePropertyCommand(): Command {
     .command('set <file-id> <name> <value>')
     .description('Set a property on a file')
     .action(async (fileId: string, name: string, value: string) => {
-      const { setProperty, getDb, loadConfig } = await import('@s3sync/core');
+      const { setProperty, getDb, loadConfig } = await import('@archivault/core');
       const config = loadConfig();
       getDb(config.dbPath);
       await setProperty(fileId, name, value);
@@ -90,7 +90,7 @@ export function makePropertyCommand(): Command {
     .command('remove <file-id> <name>')
     .description('Remove a property from a file')
     .action(async (fileId: string, name: string) => {
-      const { removeProperty, getDb, loadConfig } = await import('@s3sync/core');
+      const { removeProperty, getDb, loadConfig } = await import('@archivault/core');
       const config = loadConfig();
       getDb(config.dbPath);
       await removeProperty(fileId, name);

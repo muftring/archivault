@@ -29,7 +29,7 @@ export function closeDb(): void {
 }
 
 export function defaultDbPath(): string {
-  return join(homedir(), '.s3sync', 'files.db');
+  return join(homedir(), '.archivault', 'files.db');
 }
 
 function applyPragmas(sqlite: Database.Database): void {

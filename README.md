@@ -7,13 +7,13 @@ Upload and download files to/from AWS S3 with full metadata tracking, integrity 
 ```
 packages/
   core/       Shared library: S3 ops, SQLite database, checksums, file metadata
-  cli/        Command-line interface (s3sync)
+  cli/        Command-line interface (archivault)
   electron/   Desktop GUI (Electron + React)
 ```
 
 **Storage**: Files are stored in S3 under randomly generated `UUID/UUID` keys (no predictable patterns, good prefix distribution). Every upload is tracked in a local SQLite database with SHA256 checksums, tags, and arbitrary name-value properties.
 
-**Database**: SQLite (`~/.s3sync/files.db`), optimized for 100M+ rows with WAL mode, a 64 MB page cache, and indexes on all query-heavy columns.
+**Database**: SQLite (`~/.archivault/files.db`), optimized for 100M+ rows with WAL mode, a 64 MB page cache, and indexes on all query-heavy columns.
 
 **Multipart**: Files ≥ 100 MB use S3 multipart upload (8 MB parts, 4 concurrent). Smaller files use single `PutObject`. Downloads stream directly from S3 with concurrent SHA256 verification.
 
@@ -26,17 +26,17 @@ The app uses the standard AWS credential chain — no credentials are stored in 
 # Configure SSO once
 aws configure sso
 
-# Login before using s3sync
+# Login before using archivault
 aws sso login --profile your-profile
 
-# Tell s3sync which profile to use
-s3sync config --profile your-profile
+# Tell archivault which profile to use
+archivault config --profile your-profile
 ```
 
 **Alternative (IAM user with access keys):**
 ```bash
-aws configure --profile s3sync-user
-s3sync config --profile s3sync-user
+aws configure --profile archivault-user
+archivault config --profile archivault-user
 ```
 
 The app respects `AWS_PROFILE`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` environment variables.
@@ -71,29 +71,29 @@ npm link --workspace=packages/cli
 
 ```bash
 # 1. Configure
-s3sync config --bucket my-photos-bucket --region us-east-1 --profile my-profile
+archivault config --bucket my-photos-bucket --region us-east-1 --profile my-profile
 
 # 2. Upload a directory
-s3sync upload ~/Pictures --recursive --tag photos --tag 2024
+archivault upload ~/Pictures --recursive --tag photos --tag 2024
 
 # 3. List uploaded files
-s3sync list --tag photos
-s3sync list --name ".jpg" --from 2024-01-01
-s3sync list --path /Users/michael/Pictures/vacation
+archivault list --tag photos
+archivault list --name ".jpg" --from 2024-01-01
+archivault list --path /Users/michael/Pictures/vacation
 
 # 4. Show details for a file
-s3sync show <file-id>
+archivault show <file-id>
 
 # 5. Download a file
-s3sync download <file-id> ~/Downloads
+archivault download <file-id> ~/Downloads
 
 # 6. Verify integrity (re-downloads and checks SHA256)
-s3sync verify --unverified --limit 500
+archivault verify --unverified --limit 500
 ```
 
 ## CLI Reference
 
-### `s3sync upload <source>`
+### `archivault upload <source>`
 
 | Flag | Description |
 |---|---|
@@ -105,11 +105,11 @@ s3sync verify --unverified --limit 500
 | `--profile <name>` | AWS profile |
 | `--dry-run` | Preview without uploading |
 
-### `s3sync download <file-id> <dest-dir>`
+### `archivault download <file-id> <dest-dir>`
 
 Downloads the file and verifies SHA256 checksum. Use `--no-verify` to skip.
 
-### `s3sync list`
+### `archivault list`
 
 | Flag | Description |
 |---|---|
@@ -123,26 +123,26 @@ Downloads the file and verifies SHA256 checksum. Use `--no-verify` to skip.
 | `--limit / --offset` | Pagination |
 | `--json` | JSON output |
 
-### `s3sync show <file-id>`
+### `archivault show <file-id>`
 
 Shows full file record including checksums, S3 key, tags, and properties.
 
-### `s3sync verify`
+### `archivault verify`
 
 Re-downloads files from S3 and compares SHA256. Use `--unverified` to only check files never verified, `--limit` to control batch size.
 
-### `s3sync tag add/remove <file-id> <tag>`
+### `archivault tag add/remove <file-id> <tag>`
 
-### `s3sync prop set/remove <file-id> <name> [value]`
+### `archivault prop set/remove <file-id> <name> [value]`
 
-### `s3sync config`
+### `archivault config`
 
 ```bash
-s3sync config --bucket my-bucket --region us-east-1
-s3sync config --show
+archivault config --bucket my-bucket --region us-east-1
+archivault config --show
 ```
 
-Config is stored at `~/.s3sync/config.json`. Database at `~/.s3sync/files.db`.
+Config is stored at `~/.archivault/config.json`. Database at `~/.archivault/files.db`.
 
 ## Database Schema
 
@@ -178,4 +178,4 @@ Indexes on: `source_path`, `file_name`, `uploaded_at`, `checksum_before`, `s3_ke
 npm run dev:electron
 ```
 
-The Electron app exposes all core functionality through a secure IPC bridge (`contextBridge`). The main process calls into `@s3sync/core` directly; the renderer only sees the typed `window.s3sync` API defined in `preload.ts`.
+The Electron app exposes all core functionality through a secure IPC bridge (`contextBridge`). The main process calls into `@archivault/core` directly; the renderer only sees the typed `window.archivault` API defined in `preload.ts`.

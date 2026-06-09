@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { downloadFile, loadConfig, getDb } from '@s3sync/core';
+import { downloadFile, loadConfig, getDb } from '@archivault/core';
 import { log, createProgressBar } from '../output';
 import chalk from 'chalk';
 

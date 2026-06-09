@@ -1,5 +1,5 @@
 {
-  "name": "aws-s3-sync",
+  "name": "archivault",
   "version": "1.0.0",
   "private": true,
   "workspaces": [

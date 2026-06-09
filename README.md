@@ -1,4 +1,4 @@
-# aws-s3-sync
+# archivault
 
 Upload and download files to/from AWS S3 with full metadata tracking, integrity verification, and search.
 
@@ -59,7 +59,7 @@ Additional costs:
 
 ```bash
 git clone <repo>
-cd aws-s3-sync
+cd archivault
 npm install
 npm run build
 

@@ -1,0 +1,19 @@
+{
+  "name": "aws-s3-sync",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:core": "npm run build --workspace=packages/core",
+    "build:cli": "npm run build --workspace=packages/cli",
+    "build:electron": "npm run build --workspace=packages/electron",
+    "dev:cli": "npm run dev --workspace=packages/cli",
+    "dev:electron": "npm run dev --workspace=packages/electron",
+    "db:generate": "drizzle-kit generate --config=packages/core/drizzle.config.ts",
+    "db:migrate": "npm run db:migrate --workspace=packages/core",
+    "clean": "find packages -name dist -type d -exec rm -rf {} + 2>/dev/null; find packages -name '*.tsbuildinfo' -delete 2>/dev/null; true"
+  }
+}

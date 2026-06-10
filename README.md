@@ -41,17 +41,23 @@ archivault config --profile archivault-user
 
 The app respects `AWS_PROFILE`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` environment variables.
 
-## AWS Cost Estimate (10 TB / 100M files)
+## AWS Cost Estimate
 
-| Storage class | Monthly cost | Notes |
-|---|---|---|
-| S3 Standard | ~$236/mo | Good for frequently accessed files |
-| **S3 Intelligent-Tiering** | **~$250/mo** | **Recommended** — auto-moves cold objects cheaper |
-| S3 Glacier Instant | ~$41/mo | Archival; ms restore latency |
-| S3 Glacier Deep Archive | ~$10/mo | Archival; 12h restore |
+All figures are us-east-1 monthly storage costs. 1 TB = 1,024 GB.
+
+| Storage class | 100 GB | 500 GB | 1 TB | 5 TB | 10 TB |
+|---|---|---|---|---|---|
+| S3 Standard | $2.30 | $11.50 | $23.55 | $117.76 | $235.52 |
+| **S3 Intelligent-Tiering**† | **$1.25** | **$6.25** | **$12.80** | **$64.00** | **$128.00** |
+| S3 Glacier Instant | $0.40 | $2.00 | $4.10 | $20.48 | $40.96 |
+| S3 Glacier Deep Archive | $0.10 | $0.50 | $1.01 | $5.07 | $10.14 |
+
+† **Intelligent-Tiering is recommended** for archival use. Costs shown reflect the Infrequent Access tier ($0.0125/GB), which is the steady state for data untouched for 30+ days. Newly uploaded files start at the Frequent Access rate ($0.023/GB, same as Standard) and drop automatically — no action required. A small per-object monitoring fee ($0.0025 per 1,000 objects) applies to objects ≥ 128 KB; at personal-archive scale this is negligible.
+
+**Glacier** options require explicit retrieval requests and have minimum storage durations (90 days for Glacier Instant, 180 days for Deep Archive). Use them only if you rarely need to access files.
 
 Additional costs:
-- PUT requests (100M files, one-time): ~$500
+- PUT requests: $0.005 per 1,000 uploads (one-time, at upload)
 - GET requests: $0.40 per million
 - Egress: first 100 GB/month free, then $0.09/GB
 

@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
     "build:core": "npm run build --workspace=packages/core",
     "build:cli": "npm run build --workspace=packages/cli",
     "build:electron": "npm run build --workspace=packages/electron",

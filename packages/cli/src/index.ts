@@ -5,6 +5,7 @@ import { makeDownloadCommand } from './commands/download';
 import { makeListCommand, makeShowCommand } from './commands/list';
 import { makeVerifyCommand } from './commands/verify';
 import { makeConfigCommand, makeTagCommand, makePropertyCommand } from './commands/config';
+import { makeDbCommand } from './commands/db';
 
 const program = new Command();
 
@@ -21,6 +22,7 @@ program.addCommand(makeVerifyCommand());
 program.addCommand(makeConfigCommand());
 program.addCommand(makeTagCommand());
 program.addCommand(makePropertyCommand());
+program.addCommand(makeDbCommand());
 
 program.parseAsync(process.argv).catch((err: Error) => {
   console.error(err.message);

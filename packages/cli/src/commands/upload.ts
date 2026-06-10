@@ -12,6 +12,7 @@ export function makeUploadCommand(): Command {
     .option('-b, --bucket <bucket>', 'S3 bucket name')
     .option('-r, --recursive', 'Recurse into subdirectories', false)
     .option('-s, --storage-class <class>', 'S3 storage class', 'INTELLIGENT_TIERING')
+    .option('-u, --uploaded-by <user>', 'User or identifier to record as the uploader')
     .option('-t, --tag <tag>', 'Tag to apply (repeatable)', collect, [])
     .option('-p, --property <name=value>', 'Property to set (repeatable)', collectKV, {})
     .option('--profile <profile>', 'AWS profile name')
@@ -65,6 +66,7 @@ export function makeUploadCommand(): Command {
           const result = await uploadFile({
             bucket,
             filePath,
+            uploadedBy: opts.uploadedBy as string | undefined,
             tags: opts.tag as string[],
             properties: opts.property as Record<string, string>,
             storageClass: opts.storageClass,

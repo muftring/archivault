@@ -1,6 +1,6 @@
-import { sqliteTable, text, integer, index, primaryKey } from 'drizzle-orm/sqlite-core';
+import { pgTable, text, integer, index, primaryKey } from 'drizzle-orm/pg-core';
 
-export const files = sqliteTable(
+export const files = pgTable(
   'files',
   {
     id: text('id').primaryKey(),
@@ -30,7 +30,7 @@ export const files = sqliteTable(
   })
 );
 
-export const fileTags = sqliteTable(
+export const fileTags = pgTable(
   'file_tags',
   {
     fileId: text('file_id')
@@ -45,7 +45,7 @@ export const fileTags = sqliteTable(
   })
 );
 
-export const fileProperties = sqliteTable(
+export const fileProperties = pgTable(
   'file_properties',
   {
     fileId: text('file_id')
@@ -60,13 +60,3 @@ export const fileProperties = sqliteTable(
     nameValueIdx: index('idx_file_properties_name_value').on(t.name, t.value),
   })
 );
-
-export type File = typeof files.$inferSelect;
-export type NewFile = typeof files.$inferInsert;
-export type FileTag = typeof fileTags.$inferSelect;
-export type FileProperty = typeof fileProperties.$inferSelect;
-
-export type FileWithMeta = File & {
-  tags: string[];
-  properties: Record<string, string>;
-};

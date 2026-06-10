@@ -1,6 +1,5 @@
 import { eq, like, gte, lte, and, inArray, desc, asc, sql } from 'drizzle-orm';
-import { getDb } from './client';
-import { files, fileTags, fileProperties } from './schema';
+import { getDb, getActiveTables } from './client';
 import type { NewFile, FileWithMeta } from './schema';
 
 export interface ListFilesOptions {
@@ -8,6 +7,7 @@ export interface ListFilesOptions {
   fileName?: string;
   fromDate?: string;
   toDate?: string;
+  uploadedBy?: string;
   tags?: string[];
   propertyName?: string;
   propertyValue?: string;
@@ -19,13 +19,17 @@ export interface ListFilesOptions {
 }
 
 export async function insertFile(record: NewFile): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
   await db.insert(files).values(record);
 }
 
 export async function insertFileTags(fileId: string, tags: string[]): Promise<void> {
   if (tags.length === 0) return;
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileTags } = getActiveTables();
   await db.insert(fileTags).values(tags.map((tag) => ({ fileId, tag })));
 }
 
@@ -35,33 +39,43 @@ export async function insertFileProperties(
 ): Promise<void> {
   const entries = Object.entries(props);
   if (entries.length === 0) return;
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileProperties } = getActiveTables();
   await db
     .insert(fileProperties)
     .values(entries.map(([name, value]) => ({ fileId, name, value })));
 }
 
 export async function getFileById(id: string): Promise<FileWithMeta | null> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
   const row = await db.query.files.findFirst({ where: eq(files.id, id) });
   if (!row) return null;
   return enrichWithMeta([row]).then((r) => r[0] ?? null);
 }
 
 export async function getFileByS3Key(s3Key: string): Promise<FileWithMeta | null> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
   const row = await db.query.files.findFirst({ where: eq(files.s3Key, s3Key) });
   if (!row) return null;
   return enrichWithMeta([row]).then((r) => r[0] ?? null);
 }
 
 export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMeta[]> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files, fileTags, fileProperties } = getActiveTables();
+
   const {
     pathPrefix,
     fileName,
     fromDate,
     toDate,
+    uploadedBy,
     tags,
     propertyName,
     propertyValue,
@@ -79,6 +93,7 @@ export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMe
   if (fileName) conditions.push(like(files.fileName, `%${fileName}%`));
   if (fromDate) conditions.push(gte(files.uploadedAt, fromDate));
   if (toDate) conditions.push(lte(files.uploadedAt, toDate));
+  if (uploadedBy) conditions.push(eq(files.uploadedBy, uploadedBy));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -104,8 +119,8 @@ export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMe
       .where(inArray(fileTags.tag, tags))
       .groupBy(fileTags.fileId)
       .having(sql`count(distinct ${fileTags.tag}) = ${tags.length}`);
-    const ids = new Set(taggedIds.map((r) => r.fileId));
-    rows = rows.filter((r) => ids.has(r.id));
+    const ids = new Set(taggedIds.map((r: { fileId: string }) => r.fileId));
+    rows = rows.filter((r: { id: string }) => ids.has(r.id));
   }
 
   if (propertyName) {
@@ -115,15 +130,17 @@ export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMe
       .select({ fileId: fileProperties.fileId })
       .from(fileProperties)
       .where(and(...propConditions));
-    const ids = new Set(propIds.map((r) => r.fileId));
-    rows = rows.filter((r) => ids.has(r.id));
+    const ids = new Set(propIds.map((r: { fileId: string }) => r.fileId));
+    rows = rows.filter((r: { id: string }) => ids.has(r.id));
   }
 
   return enrichWithMeta(rows);
 }
 
 export async function updateChecksumAfter(id: string, checksum: string): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
   await db
     .update(files)
     .set({ checksumAfter: checksum, lastVerifiedAt: new Date().toISOString() })
@@ -134,17 +151,23 @@ export async function updateFileStatus(
   id: string,
   status: 'active' | 'deleted' | 'archived'
 ): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
   await db.update(files).set({ status }).where(eq(files.id, id));
 }
 
 export async function addTag(fileId: string, tag: string): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileTags } = getActiveTables();
   await db.insert(fileTags).values({ fileId, tag }).onConflictDoNothing();
 }
 
 export async function removeTag(fileId: string, tag: string): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileTags } = getActiveTables();
   await db
     .delete(fileTags)
     .where(and(eq(fileTags.fileId, fileId), eq(fileTags.tag, tag)));
@@ -155,7 +178,9 @@ export async function setProperty(
   name: string,
   value: string
 ): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileProperties } = getActiveTables();
   await db
     .insert(fileProperties)
     .values({ fileId, name, value })
@@ -163,17 +188,22 @@ export async function setProperty(
 }
 
 export async function removeProperty(fileId: string, name: string): Promise<void> {
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileProperties } = getActiveTables();
   await db
     .delete(fileProperties)
     .where(and(eq(fileProperties.fileId, fileId), eq(fileProperties.name, name)));
 }
 
 async function enrichWithMeta(
-  rows: Array<typeof files.$inferSelect>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: any[]
 ): Promise<FileWithMeta[]> {
   if (rows.length === 0) return [];
-  const db = getDb();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileTags, fileProperties } = getActiveTables();
   const ids = rows.map((r) => r.id);
 
   const [tagRows, propRows] = await Promise.all([

@@ -11,6 +11,7 @@ import type { S3Config } from './client';
 export interface UploadOptions {
   bucket: string;
   filePath: string;
+  uploadedBy?: string;
   tags?: string[];
   properties?: Record<string, string>;
   storageClass?: string;
@@ -29,6 +30,7 @@ export async function uploadFile(opts: UploadOptions): Promise<UploadResult> {
   const {
     bucket,
     filePath,
+    uploadedBy,
     tags = [],
     properties = {},
     storageClass = 'STANDARD',
@@ -62,6 +64,7 @@ export async function uploadFile(opts: UploadOptions): Promise<UploadResult> {
     s3Key,
     s3StorageClass: storageClass,
     uploadedAt: new Date().toISOString(),
+    uploadedBy: uploadedBy ?? null,
     lastVerifiedAt: null,
     status: 'active',
   });

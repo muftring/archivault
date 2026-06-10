@@ -11,6 +11,7 @@ export function makeListCommand(): Command {
     .option('--name <pattern>', 'Filter by file name (substring)')
     .option('--from <date>', 'Filter by upload date from (ISO 8601, e.g. 2024-01-01)')
     .option('--to <date>', 'Filter by upload date to (ISO 8601)')
+    .option('--uploaded-by <user>', 'Filter by uploader')
     .option('-t, --tag <tag>', 'Filter by tag (repeatable)', collect, [])
     .option('--prop <name>', 'Filter by property name')
     .option('--prop-value <value>', 'Filter by property value (requires --prop)')
@@ -29,6 +30,7 @@ export function makeListCommand(): Command {
         fileName: opts.name,
         fromDate: opts.from,
         toDate: opts.to,
+        uploadedBy: opts.uploadedBy,
         tags: opts.tag.length > 0 ? opts.tag : undefined,
         propertyName: opts.prop,
         propertyValue: opts.propValue,
@@ -99,6 +101,7 @@ export function makeShowCommand(): Command {
       field('Extension', file.fileExtension ?? 'none');
       field('Status', file.status ?? 'active');
       field('Uploaded', new Date(file.uploadedAt).toLocaleString());
+      if (file.uploadedBy) field('Uploaded By', file.uploadedBy);
       if (file.lastVerifiedAt) {
         field('Last Verified', new Date(file.lastVerifiedAt).toLocaleString());
       }

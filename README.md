@@ -6,14 +6,14 @@ Upload and download files to/from AWS S3 with full metadata tracking, integrity 
 
 ```
 packages/
-  core/       Shared library: S3 ops, SQLite database, checksums, file metadata
+  core/       Shared library: S3 ops, database, checksums, file metadata
   cli/        Command-line interface (archivault)
   electron/   Desktop GUI (Electron + React)
 ```
 
-**Storage**: Files are stored in S3 under randomly generated `UUID/UUID` keys (no predictable patterns, good prefix distribution). Every upload is tracked in a local SQLite database with SHA256 checksums, tags, and arbitrary name-value properties.
+**Storage**: Files are stored in S3 under randomly generated `UUID/UUID` keys (no predictable patterns, good prefix distribution). Every upload is tracked in a database with SHA256 checksums, tags, arbitrary name-value properties, and an optional uploader identity.
 
-**Database**: SQLite (`~/.archivault/files.db`), optimized for 100M+ rows with WAL mode, a 64 MB page cache, and indexes on all query-heavy columns.
+**Database**: Configurable — SQLite (default, local file) or PostgreSQL (shared server). SQLite is optimized for 100M+ rows with WAL mode, a 64 MB page cache, and indexes on all query-heavy columns.
 
 **Multipart**: Files ≥ 100 MB use S3 multipart upload (8 MB parts, 4 concurrent). Smaller files use single `PutObject`. Downloads stream directly from S3 with concurrent SHA256 verification.
 
@@ -69,26 +69,44 @@ npm link --workspace=packages/cli
 
 ## Quick start
 
+### SQLite (default — single machine)
+
 ```bash
-# 1. Configure
+# 1. Configure S3
 archivault config --bucket my-photos-bucket --region us-east-1 --profile my-profile
 
-# 2. Upload a directory
-archivault upload ~/Pictures --recursive --tag photos --tag 2024
+# 2. Upload
+archivault upload ~/Pictures --recursive --tag photos --tag 2024 --uploaded-by alice
 
-# 3. List uploaded files
+# 3. List and search
 archivault list --tag photos
 archivault list --name ".jpg" --from 2024-01-01
-archivault list --path /Users/michael/Pictures/vacation
+archivault list --uploaded-by alice
 
-# 4. Show details for a file
+# 4. Show details, download, verify
 archivault show <file-id>
-
-# 5. Download a file
 archivault download <file-id> ~/Downloads
-
-# 6. Verify integrity (re-downloads and checks SHA256)
 archivault verify --unverified --limit 500
+```
+
+### PostgreSQL (shared / multi-user)
+
+```bash
+# 1. Point archivault at your Postgres instance
+archivault config \
+  --db-type postgres \
+  --pg-host db.example.com \
+  --pg-database archivault \
+  --pg-username archivault_user \
+  --pg-password secret \
+  --pg-schema archivault
+
+# 2. Create the schema (run once)
+archivault db setup
+
+# 3. Configure S3 and use normally
+archivault config --bucket my-photos-bucket --region us-east-1
+archivault upload ~/Pictures --recursive --uploaded-by alice
 ```
 
 ## CLI Reference
@@ -100,6 +118,7 @@ archivault verify --unverified --limit 500
 | `-b, --bucket <name>` | S3 bucket (or use configured default) |
 | `-r, --recursive` | Recurse into subdirectories |
 | `-s, --storage-class` | Storage class (default: `INTELLIGENT_TIERING`) |
+| `-u, --uploaded-by <user>` | Record who uploaded the file |
 | `-t, --tag <tag>` | Add a tag (repeatable) |
 | `-p, --property <k=v>` | Add a property (repeatable) |
 | `--profile <name>` | AWS profile |
@@ -116,6 +135,7 @@ Downloads the file and verifies SHA256 checksum. Use `--no-verify` to skip.
 | `--path <prefix>` | Filter by source path prefix |
 | `--name <pattern>` | Filter by filename (substring) |
 | `--from / --to <date>` | Filter by upload date (ISO 8601) |
+| `--uploaded-by <user>` | Filter by uploader |
 | `-t, --tag <tag>` | Filter by tag (repeatable; all must match) |
 | `--prop <name>` | Filter by property name |
 | `--prop-value <value>` | Filter by property value |
@@ -125,7 +145,7 @@ Downloads the file and verifies SHA256 checksum. Use `--no-verify` to skip.
 
 ### `archivault show <file-id>`
 
-Shows full file record including checksums, S3 key, tags, and properties.
+Shows full file record including checksums, S3 key, tags, properties, and uploader.
 
 ### `archivault verify`
 
@@ -138,39 +158,104 @@ Re-downloads files from S3 and compares SHA256. Use `--unverified` to only check
 ### `archivault config`
 
 ```bash
-archivault config --bucket my-bucket --region us-east-1
+# S3
+archivault config --bucket my-bucket --region us-east-1 --profile my-profile
+
+# Switch to SQLite with a custom path
+archivault config --db-type sqlite --sqlite-path /data/archivault.db
+
+# Switch to PostgreSQL
+archivault config --db-type postgres \
+  --pg-host localhost --pg-port 5432 \
+  --pg-database archivault --pg-schema public \
+  --pg-username user --pg-password secret \
+  --pg-ssl
+
+# Show current config
 archivault config --show
 ```
 
-Config is stored at `~/.archivault/config.json`. Database at `~/.archivault/files.db`.
+Config is stored at `~/.archivault/config.json`. The `ARCHIVAULT_CONFIG_DIR` environment variable overrides the config directory.
+
+### `archivault db setup`
+
+Creates the database schema. Required when first using PostgreSQL; a no-op for SQLite (tables are created automatically). Safe to re-run — all statements are idempotent.
 
 ## Database Schema
 
 ```
-files            — one row per uploaded file
-  id             UUID primary key
-  source_path    original local path
-  file_name      basename
+files              — one row per uploaded file
+  id               UUID primary key
+  source_path      original local path
+  file_name        basename
   file_extension
-  mime_type      MIME type (by extension)
-  file_size      bytes
+  mime_type        MIME type (by extension)
+  file_size        bytes
   checksum_before  SHA256 before upload
   checksum_after   SHA256 after last verify
   s3_bucket
-  s3_key         UUID/UUID
+  s3_key           UUID/UUID
   s3_storage_class
-  uploaded_at    ISO 8601
+  uploaded_at      ISO 8601
+  uploaded_by      optional uploader identifier
   last_verified_at
-  status         active | deleted | archived
+  status           active | deleted | archived
 
-file_tags        — many-to-many tags
+file_tags          — many-to-many tags
   file_id, tag
 
-file_properties  — arbitrary name-value pairs per file
+file_properties    — arbitrary name-value pairs per file
   file_id, name, value
 ```
 
-Indexes on: `source_path`, `file_name`, `uploaded_at`, `checksum_before`, `s3_key`, `status`, tags, and property name/value.
+Indexes on: `source_path`, `file_name`, `uploaded_at`, `uploaded_by`, `checksum_before`, `s3_key`, `status`, tags, and property name/value.
+
+## Database Configuration
+
+The active backend is selected by `database.type` in `~/.archivault/config.json`.
+
+### SQLite (default)
+
+```json
+{
+  "database": {
+    "type": "sqlite",
+    "sqlite": { "path": "~/.archivault/files.db" }
+  }
+}
+```
+
+Tables are created automatically on first run. No setup required.
+
+### PostgreSQL
+
+```json
+{
+  "database": {
+    "type": "postgres",
+    "postgres": {
+      "host": "localhost",
+      "port": 5432,
+      "database": "archivault",
+      "schema": "public",
+      "username": "archivault_user",
+      "password": "secret",
+      "ssl": false
+    }
+  }
+}
+```
+
+Run `archivault db setup` once after configuring to create the schema. Existing SQLite databases are automatically migrated when new columns are added.
+
+## Testing
+
+```bash
+npm test               # run all tests
+npm test --workspace=packages/core   # core library only
+```
+
+Tests use Vitest with an in-memory SQLite database — no external services required. The `ARCHIVAULT_CONFIG_DIR` environment variable isolates config reads so tests never touch `~/.archivault`.
 
 ## Electron App
 

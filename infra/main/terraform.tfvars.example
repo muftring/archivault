@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars (gitignored) and fill in your values.
+
+aws_region   = "us-east-1"
+project_name = "archivault"
+environment  = "prod"
+
+# Your IAM Identity Center username (not email — the short username)
+sso_username = "michael"
+
+# CIDRs allowed to connect to RDS on port 5432.
+# Find your public IP: curl -s https://checkip.amazonaws.com
+allowed_cidr_blocks = ["YOUR.PUBLIC.IP.HERE/32"]
+
+# RDS options
+rds_instance_class         = "db.t4g.micro"
+rds_publicly_accessible    = true
+enable_deletion_protection = true
+
+# S3 options
+enable_s3_versioning = true

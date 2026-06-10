@@ -1,0 +1,6 @@
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.tfstate
+**/terraform.tfvars
+**/backend.hcl

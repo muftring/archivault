@@ -1,0 +1,11 @@
+# Copy this file to backend.hcl and fill in the values from:
+#   terraform -chdir=infra/bootstrap output
+#
+# backend.hcl is gitignored (it's not secret, but it's machine-specific).
+# Run: terraform init -backend-config=backend.hcl
+
+bucket         = "<bootstrap output: state_bucket_name>"
+key            = "archivault/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "<bootstrap output: lock_table_name>"
+encrypt        = true

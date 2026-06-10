@@ -248,6 +248,72 @@ Tables are created automatically on first run. No setup required.
 
 Run `archivault db setup` once after configuring to create the schema. Existing SQLite databases are automatically migrated when new columns are added.
 
+## Infrastructure (Terraform)
+
+The `infra/` directory provisions all required AWS resources.
+
+### Prerequisites
+
+- Terraform ≥ 1.9 (`brew install terraform`)
+- AWS CLI configured with an account that has admin rights for the one-time bootstrap
+- IAM Identity Center already enabled in your AWS organization
+
+### Step 1 — Bootstrap (run once)
+
+Creates the S3 state bucket and DynamoDB lock table used by all subsequent Terraform runs.
+
+```bash
+cd infra/bootstrap
+terraform init
+terraform apply
+```
+
+### Step 2 — Configure the backend
+
+```bash
+cd infra/main
+cp backend.hcl.example backend.hcl
+# Edit backend.hcl — paste the outputs from the bootstrap step
+terraform init -backend-config=backend.hcl
+```
+
+### Step 3 — Configure variables
+
+```bash
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars — set your SSO username, home IP, region, etc.
+```
+
+### Step 4 — Apply
+
+```bash
+terraform plan   # review what will be created
+terraform apply
+```
+
+After apply, Terraform prints a `next_steps` output with the exact `archivault config` commands to run.
+
+### What gets created
+
+| Resource | Notes |
+|---|---|
+| `aws_s3_bucket` | Archive bucket, SSE-S3, public access blocked, versioning on |
+| `aws_s3_bucket_lifecycle_configuration` | Aborts incomplete multipart uploads after 7 days; expires old versions after 90 days |
+| `aws_ssoadmin_permission_set` | Least-privilege S3 policy (ListBucket, GetObject, PutObject, DeleteObject, HeadObject, multipart ops) |
+| `aws_ssoadmin_account_assignment` | Assigns the permission set to your IAM Identity Center user |
+| `aws_db_instance` | RDS PostgreSQL 16, `db.t4g.micro`, gp3, encrypted, 7-day backups |
+| `aws_security_group` | Restricts port 5432 to `allowed_cidr_blocks` |
+
+### Estimated monthly cost
+
+| Resource | Cost |
+|---|---|
+| S3 storage (variable) | ~$0.023/GB |
+| RDS `db.t4g.micro` | ~$15–18/mo |
+| RDS storage (20 GB gp3) | ~$2.30/mo |
+| DynamoDB lock table | < $0.01/mo |
+| **Total (excluding S3 data)** | **~$18/mo** |
+
 ## Testing
 
 ```bash

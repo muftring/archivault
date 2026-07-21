@@ -37,6 +37,7 @@
   "build": {
     "appId": "com.archivault.app",
     "productName": "Archivault",
+    "electronVersion": "31.7.7",
     "files": [
       "dist/**/*",
       "src/renderer/index.html"
@@ -44,14 +45,28 @@
     "directories": {
       "output": "release"
     },
+    "npmRebuild": false,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "build/icons/icon.icns",
+      "category": "public.app-category.utilities"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icons/icon.ico"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "build/icons",
+      "category": "Utility"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "muftring",
+      "repo": "archivault"
     }
   }
 }

@@ -1,15 +1,5 @@
 import { Command } from 'commander';
-import { join } from 'path';
-import { mkdirSync, unlinkSync } from 'fs';
-import { tmpdir } from 'os';
-import {
-  listFiles,
-  downloadByKey,
-  updateChecksumAfter,
-  loadConfig,
-  getDb,
-  formatBytes,
-} from '@archivault/core';
+import { listFiles, verifyFile, loadConfig, getDb } from '@archivault/core';
 import { log } from '../output';
 import chalk from 'chalk';
 
@@ -31,9 +21,6 @@ export function makeVerifyCommand(): Command {
         profile: opts.profile ?? config.profile,
         endpoint: config.endpoint,
       };
-
-      const tmpDir = join(tmpdir(), 'archivault-verify');
-      mkdirSync(tmpDir, { recursive: true });
 
       let filesToVerify = await listFiles({
         status: 'active',
@@ -58,21 +45,12 @@ export function makeVerifyCommand(): Command {
       let failed = 0;
 
       for (const file of filesToVerify) {
-        const tmpPath = join(tmpDir, file.id);
         process.stdout.write(`  ${chalk.dim(file.id.slice(0, 8))}  ${file.fileName.padEnd(40)} `);
 
         try {
-          const { checksum } = await downloadByKey(
-            file.s3Bucket,
-            file.s3Key,
-            tmpPath,
-            s3Config
-          );
+          const { checksum, checksumMatch } = await verifyFile(file, s3Config);
 
-          await updateChecksumAfter(file.id, checksum);
-          unlinkSync(tmpPath);
-
-          if (checksum === file.checksumBefore) {
+          if (checksumMatch) {
             console.log(chalk.green('OK'));
             ok++;
           } else {

@@ -4,6 +4,8 @@ export * from './db/queries';
 export * from './s3/client';
 export * from './s3/upload';
 export * from './s3/download';
+export * from './s3/verify';
 export * from './utils/checksum';
 export * from './utils/file-info';
+export * from './utils/walk';
 export * from './config';

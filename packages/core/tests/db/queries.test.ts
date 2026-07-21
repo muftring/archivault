@@ -7,6 +7,9 @@ import {
   getFileById,
   getFileByS3Key,
   listFiles,
+  countFiles,
+  listDistinctTags,
+  listDistinctPropertyNames,
   addTag,
   removeTag,
   setProperty,
@@ -304,5 +307,68 @@ describe('updateFileStatus', () => {
     await updateFileStatus(file.id, 'archived');
     const results = await listFiles();
     expect(results.map((f) => f.id)).not.toContain('status-2');
+  });
+});
+
+describe('countFiles', () => {
+  it('counts active files by default', async () => {
+    await insertFile(makeFile({ id: 'count-a', status: 'active' }));
+    await insertFile(makeFile({ id: 'count-b', status: 'deleted' }));
+    const before = await countFiles();
+    expect(before).toBeGreaterThanOrEqual(1);
+    const results = await listFiles({ limit: 1000 });
+    expect(before).toBe(results.length);
+  });
+
+  it('respects the same filters as listFiles, ignoring limit/offset', async () => {
+    for (let i = 0; i < 5; i++) {
+      await insertFile(makeFile({ id: `count-page-${i}`, uploadedBy: 'count-user' }));
+    }
+    const count = await countFiles({ uploadedBy: 'count-user' });
+    expect(count).toBe(5);
+    const page = await listFiles({ uploadedBy: 'count-user', limit: 2 });
+    expect(page).toHaveLength(2);
+  });
+
+  it('counts files filtered by tags', async () => {
+    const a = makeFile({ id: 'count-tag-a' });
+    const b = makeFile({ id: 'count-tag-b' });
+    await insertFile(a);
+    await insertFile(b);
+    await insertFileTags(a.id, ['count-tag']);
+    const count = await countFiles({ tags: ['count-tag'] });
+    expect(count).toBe(1);
+  });
+});
+
+describe('listDistinctTags', () => {
+  it('returns each tag once, sorted', async () => {
+    const a = makeFile({ id: 'distinct-tag-a' });
+    const b = makeFile({ id: 'distinct-tag-b' });
+    await insertFile(a);
+    await insertFile(b);
+    await insertFileTags(a.id, ['zebra', 'apple']);
+    await insertFileTags(b.id, ['apple']);
+    const tags = await listDistinctTags();
+    expect(tags.filter((t) => t === 'apple')).toHaveLength(1);
+    expect(tags).toContain('zebra');
+    const appleIdx = tags.indexOf('apple');
+    const zebraIdx = tags.indexOf('zebra');
+    expect(appleIdx).toBeLessThan(zebraIdx);
+  });
+});
+
+describe('listDistinctPropertyNames', () => {
+  it('returns each property name once', async () => {
+    const a = makeFile({ id: 'distinct-prop-a' });
+    const b = makeFile({ id: 'distinct-prop-b' });
+    await insertFile(a);
+    await insertFile(b);
+    await setProperty(a.id, 'camera', 'Canon');
+    await setProperty(b.id, 'camera', 'Nikon');
+    await setProperty(b.id, 'location', 'Paris');
+    const names = await listDistinctPropertyNames();
+    expect(names.filter((n) => n === 'camera')).toHaveLength(1);
+    expect(names).toContain('location');
   });
 });

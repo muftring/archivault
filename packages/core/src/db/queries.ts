@@ -65,26 +65,14 @@ export async function getFileByS3Key(s3Key: string): Promise<FileWithMeta | null
   return enrichWithMeta([row]).then((r) => r[0] ?? null);
 }
 
-export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMeta[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = getDb() as any;
-  const { files, fileTags, fileProperties } = getActiveTables();
+type BaseFilterOptions = Pick<
+  ListFilesOptions,
+  'pathPrefix' | 'fileName' | 'fromDate' | 'toDate' | 'uploadedBy' | 'status'
+>;
 
-  const {
-    pathPrefix,
-    fileName,
-    fromDate,
-    toDate,
-    uploadedBy,
-    tags,
-    propertyName,
-    propertyValue,
-    status = 'active',
-    limit = 50,
-    offset = 0,
-    orderBy = 'uploaded_at',
-    orderDir = 'desc',
-  } = opts;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildBaseConditions(opts: BaseFilterOptions, files: any) {
+  const { pathPrefix, fileName, fromDate, toDate, uploadedBy, status = 'active' } = opts;
 
   const conditions = [];
 
@@ -95,22 +83,20 @@ export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMe
   if (toDate) conditions.push(lte(files.uploadedAt, toDate));
   if (uploadedBy) conditions.push(eq(files.uploadedBy, uploadedBy));
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
 
-  const orderCol =
-    orderBy === 'file_name'
-      ? files.fileName
-      : orderBy === 'file_size'
-      ? files.fileSize
-      : files.uploadedAt;
-  const orderFn = orderDir === 'asc' ? asc : desc;
-
-  let rows = await db.query.files.findMany({
-    where,
-    limit,
-    offset,
-    orderBy: orderFn(orderCol),
-  });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function filterIdsByTagsAndProperties(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: any[],
+  opts: Pick<ListFilesOptions, 'tags' | 'propertyName' | 'propertyValue'>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileTags, fileProperties } = getActiveTables();
+  const { tags, propertyName, propertyValue } = opts;
 
   if (tags && tags.length > 0) {
     const taggedIds = await db
@@ -134,7 +120,79 @@ export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMe
     rows = rows.filter((r: { id: string }) => ids.has(r.id));
   }
 
+  return rows;
+}
+
+export async function listFiles(opts: ListFilesOptions = {}): Promise<FileWithMeta[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
+
+  const {
+    tags,
+    propertyName,
+    propertyValue,
+    limit = 50,
+    offset = 0,
+    orderBy = 'uploaded_at',
+    orderDir = 'desc',
+  } = opts;
+
+  const where = buildBaseConditions(opts, files);
+
+  const orderCol =
+    orderBy === 'file_name'
+      ? files.fileName
+      : orderBy === 'file_size'
+      ? files.fileSize
+      : files.uploadedAt;
+  const orderFn = orderDir === 'asc' ? asc : desc;
+
+  let rows = await db.query.files.findMany({
+    where,
+    limit,
+    offset,
+    orderBy: orderFn(orderCol),
+  });
+
+  rows = await filterIdsByTagsAndProperties(rows, { tags, propertyName, propertyValue });
+
   return enrichWithMeta(rows);
+}
+
+export async function countFiles(
+  opts: Omit<ListFilesOptions, 'limit' | 'offset' | 'orderBy' | 'orderDir'> = {}
+): Promise<number> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { files } = getActiveTables();
+  const { tags, propertyName, propertyValue } = opts;
+
+  const where = buildBaseConditions(opts, files);
+
+  let rows = await db.query.files.findMany({ where, columns: { id: true } });
+  rows = await filterIdsByTagsAndProperties(rows, { tags, propertyName, propertyValue });
+
+  return rows.length;
+}
+
+export async function listDistinctTags(): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileTags } = getActiveTables();
+  const rows = await db.selectDistinct({ tag: fileTags.tag }).from(fileTags).orderBy(asc(fileTags.tag));
+  return rows.map((r: { tag: string }) => r.tag);
+}
+
+export async function listDistinctPropertyNames(): Promise<string[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getDb() as any;
+  const { fileProperties } = getActiveTables();
+  const rows = await db
+    .selectDistinct({ name: fileProperties.name })
+    .from(fileProperties)
+    .orderBy(asc(fileProperties.name));
+  return rows.map((r: { name: string }) => r.name);
 }
 
 export async function updateChecksumAfter(id: string, checksum: string): Promise<void> {

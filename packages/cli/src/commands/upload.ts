@@ -1,7 +1,6 @@
 import { Command } from 'commander';
-import { readdirSync, statSync } from 'fs';
-import { join } from 'path';
-import { uploadFile, loadConfig, getDb, formatBytes } from '@archivault/core';
+import { statSync } from 'fs';
+import { uploadFile, collectUploadPaths, loadConfig, getDb, formatBytes } from '@archivault/core';
 import { log, createProgressBar } from '../output';
 import chalk from 'chalk';
 
@@ -36,7 +35,7 @@ export function makeUploadCommand(): Command {
         endpoint: config.endpoint,
       };
 
-      const paths = collectPaths(source, opts.recursive as boolean);
+      const paths = collectUploadPaths(source, opts.recursive as boolean);
       if (paths.length === 0) {
         log.warn('No files found at the specified path.');
         return;
@@ -96,27 +95,6 @@ export function makeUploadCommand(): Command {
         );
       }
     });
-}
-
-function collectPaths(sourcePath: string, recursive: boolean): string[] {
-  const stats = statSync(sourcePath);
-  if (stats.isFile()) return [sourcePath];
-
-  const results: string[] = [];
-
-  function walk(dir: string): void {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
-      if (entry.isFile()) {
-        results.push(full);
-      } else if (entry.isDirectory() && recursive) {
-        walk(full);
-      }
-    }
-  }
-
-  walk(sourcePath);
-  return results;
 }
 
 function collect(value: string, previous: string[]): string[] {

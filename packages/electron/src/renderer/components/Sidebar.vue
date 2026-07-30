@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Archive, Settings, UploadCloud } from '@lucide/vue';
+import { Archive, FolderTree, Settings, UploadCloud } from '@lucide/vue';
 
 const navItems = [
   { to: '/', label: 'Files', icon: Archive },
+  { to: '/browse', label: 'Browse', icon: FolderTree },
   { to: '/upload', label: 'Upload', icon: UploadCloud },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];

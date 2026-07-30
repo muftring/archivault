@@ -1,6 +1,7 @@
 export * from './db/schema';
 export * from './db/client';
 export * from './db/queries';
+export * from './db/folders';
 export * from './s3/client';
 export * from './s3/upload';
 export * from './s3/download';

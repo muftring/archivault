@@ -1,6 +1,14 @@
-import type { AppConfig, DatabaseType, FileWithMeta, ListFilesOptions } from '@archivault/core';
+import type {
+  AppConfig,
+  DatabaseType,
+  FileWithMeta,
+  ListFilesOptions,
+  FolderChildrenOptions,
+  FolderEntry,
+  FolderListing,
+} from '@archivault/core';
 
-export type { AppConfig, DatabaseType, FileWithMeta, ListFilesOptions };
+export type { AppConfig, DatabaseType, FileWithMeta, ListFilesOptions, FolderChildrenOptions, FolderEntry, FolderListing };
 
 export interface UploadBatchOptions {
   bucket: string;
@@ -109,6 +117,9 @@ declare global {
       };
       db: {
         setup: () => Promise<{ dbType: string }>;
+      };
+      folders: {
+        listChildren: (parentPath: string | null, opts?: FolderChildrenOptions) => Promise<FolderListing>;
       };
       dialog: {
         openDirectory: () => Promise<string | null>;

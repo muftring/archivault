@@ -254,7 +254,7 @@ export async function removeProperty(fileId: string, name: string): Promise<void
     .where(and(eq(fileProperties.fileId, fileId), eq(fileProperties.name, name)));
 }
 
-async function enrichWithMeta(
+export async function enrichWithMeta(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rows: any[]
 ): Promise<FileWithMeta[]> {

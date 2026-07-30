@@ -102,7 +102,7 @@ function handleRemoveProperty(name: string) {
 
 <template>
   <div class="h-full overflow-auto p-6">
-    <button class="btn-ghost mb-4" @click="router.push('/')">
+    <button class="btn-ghost mb-4" @click="router.back()">
       <ArrowLeft :size="14" /> Back
     </button>
 
@@ -110,7 +110,7 @@ function handleRemoveProperty(name: string) {
 
     <div v-else-if="!file" class="p-6">
       <p class="text-sm text-zinc-400">File not found.</p>
-      <button class="btn-secondary mt-3" @click="router.push('/')">Back to files</button>
+      <button class="btn-secondary mt-3" @click="router.back()">Back to files</button>
     </div>
 
     <div v-else class="panel p-5">

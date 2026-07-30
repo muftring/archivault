@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ListFilesOptions } from '@archivault/core';
+import type { ListFilesOptions, FolderChildrenOptions } from '@archivault/core';
 import type { UploadBatchOptions } from './main';
 
 contextBridge.exposeInMainWorld('archivault', {
@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('archivault', {
 
   db: {
     setup: () => ipcRenderer.invoke('db:setup'),
+  },
+
+  folders: {
+    listChildren: (parentPath: string | null, opts?: FolderChildrenOptions) =>
+      ipcRenderer.invoke('folders:listChildren', parentPath, opts),
   },
 
   dialog: {

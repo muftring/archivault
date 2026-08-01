@@ -20,8 +20,9 @@ import {
   removeProperty,
   updateFileStatus,
   applyPgSchema,
+  listFolderChildren,
 } from '@archivault/core';
-import type { ListFilesOptions, S3Config } from '@archivault/core';
+import type { ListFilesOptions, S3Config, FolderChildrenOptions } from '@archivault/core';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -234,6 +235,10 @@ ipcMain.handle('db:setup', async () => {
     getDb(config.dbPath);
   }
   return { dbType };
+});
+
+ipcMain.handle('folders:listChildren', async (_e, parentPath: string | null, opts?: FolderChildrenOptions) => {
+  return listFolderChildren(parentPath, opts);
 });
 
 ipcMain.handle('dialog:openDirectory', async () => {

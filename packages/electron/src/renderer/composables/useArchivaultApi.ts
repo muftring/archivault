@@ -5,6 +5,7 @@ import type { AppConfig, ListFilesOptions } from '../lib/types';
 function invalidateFileLists(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ['files'] });
   queryClient.invalidateQueries({ queryKey: ['filesCount'] });
+  queryClient.invalidateQueries({ queryKey: ['folderChildren'] });
 }
 
 export function useConfig() {
@@ -164,5 +165,14 @@ export function useDownloadFile() {
 export function useDbSetup() {
   return useMutation({
     mutationFn: () => window.archivault.db.setup(),
+  });
+}
+
+export function useFolderChildren(path: Ref<string | null>, enabled?: Ref<boolean>) {
+  return useQuery({
+    queryKey: computed(() => ['folderChildren', path.value]),
+    queryFn: () => window.archivault.folders.listChildren(path.value, { status: 'active' }),
+    enabled,
+    staleTime: 30_000,
   });
 }

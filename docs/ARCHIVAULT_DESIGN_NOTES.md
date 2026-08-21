@@ -140,6 +140,34 @@ bake in one platform's prebuilt binary and break every other platform. A
 first pack attempt accidentally included stale per-file `tsc` output and the
 entire `src/` tree; `npm pack --dry-run` caught it.
 
+### npm auth: trusted publishing (OIDC), not a stored token
+
+`publish-npm` authenticates via **npm Trusted Publishing** — GitHub Actions
+requests a short-lived OIDC token (`permissions: id-token: write`) and
+`npm publish` exchanges it with the registry automatically. No long-lived
+`NPM_TOKEN` secret lives in the repo at all, so there's nothing to leak or
+rotate. Requires npm CLI ≥11.5.1 and Node ≥22.14.0 in that job specifically
+(pinned separately from the other jobs, which stay on Node 20 — no reason to
+touch what already works there).
+
+**Hard constraint, confirmed against npm's own `npm/cli` issue tracker
+(#8544, open, unresolved as of this writing):** trusted publishing can only
+be configured for a package that **already exists** — the npmjs.com page
+where you link a GitHub repo/workflow to a package lives under that
+package's settings, which doesn't exist until something has been published.
+There is no org-level pre-registration workaround. This means:
+
+- The **very first** publish of `@archivault/cli` must happen the old way —
+  a manual `npm publish` from a maintainer's machine (plain `npm login` +
+  token, not stored anywhere in CI).
+- Only **after** that first publish can Trusted Publishing be configured on
+  npmjs.com (link the `muftring/archivault` repo, workflow filename
+  `release.yml`), and only then does the CI job above actually work.
+- Until that one-time manual step happens, `publish-npm` will keep failing
+  in CI — this is expected, not a bug, and shouldn't block `build-electron`/
+  the rest of the release from being useful in the meantime (they're
+  independent jobs).
+
 ### Electron packaging
 
 `electron-builder` config gained `asarUnpack` for `better-sqlite3` (Node
@@ -218,23 +246,46 @@ everywhere: `productName`, window title, sidebar logo.
 
 ## Proposed release plan
 
-Not ready to tag a real release yet. In order:
+The first real attempt (tag `v1.0.0`) already happened and is instructive.
+`verify` and all three `build-electron` platforms (mac/win/linux) succeeded
+end to end — real installers built and uploaded. `publish-npm` failed for
+the expected reason: no `NPM_TOKEN` was configured yet. `finalize-release`
+correctly stayed gated off since not everything passed.
 
-1. **Merge the `electron-ui-release-pipeline` PR to `master`.** Tags should
-   come from `master`, not a feature branch mid-review.
-2. **One-time manual setup** (needs your npmjs.com account, not something
-   that can be scripted from here):
+That run also surfaced a real gap in the gating design: the empty draft
+`verify` creates got manually published (turned non-draft) from the GitHub
+UI before the `build-electron` jobs ran. `electron-builder`, finding the
+target release already public, sensibly refused to touch it and created a
+**separate orphaned draft release** (GitHub-assigned placeholder tag like
+`untagged-...`) to hold the real installer assets instead — so the visible,
+public "v1.0.0" ended up empty while the actual files sat hidden in a
+different release. Lesson: **don't manually touch the draft release the
+workflow creates** — let `finalize-release` be the only thing that
+un-drafts it. (The tangled `v1.0.0` release and its orphaned sibling need
+manual cleanup — delete both — before retrying.)
+
+Remaining steps, in order:
+
+1. **Clean up the tangled `v1.0.0` state** — delete the empty published
+   release and the orphaned `untagged-...` draft that has the real assets.
+2. **One-time manual npm setup** (needs a maintainer's npmjs.com account,
+   not something that can be scripted from here):
    - Claim/create the `archivault` npm org or scope.
-   - Generate an npm "Automation" token, add it as the `NPM_TOKEN` secret in
-     the GitHub repo settings. (`GH_TOKEN` needs no setup — GitHub injects
-     it automatically.)
-3. **First tag should be a confidence check, not the real thing.** Push a
-   tag and watch the Actions run before trusting it for a version that
-   matters: confirm the three electron-builder matrix legs all produce
-   installers, confirm `npm publish` succeeds and `npx @archivault/cli`
-   actually installs and runs post-publish.
-4. **After that works once**, releases are just: bump version across
-   workspaces, commit, tag, push — CI does the rest.
+   - Publish `@archivault/cli` **once, manually**, from a local machine
+     (`npm login`, then `npm publish --workspace packages/cli --access
+     public` from the repo root) — trusted publishing can't be configured
+     until the package exists (see above).
+   - On npmjs.com, open the now-existing `@archivault/cli` package's
+     settings and add a Trusted Publisher: GitHub Actions, repo
+     `muftring/archivault`, workflow filename `release.yml`.
+3. **Re-tag and watch it run as a confidence check** before trusting it for
+   a version that matters: confirm all three `build-electron` legs produce
+   installers, confirm `publish-npm` succeeds via OIDC (no token involved),
+   confirm `finalize-release` un-drafts the release only after both. Don't
+   touch the draft release by hand while it's running.
+4. **After that works once**, every future release is just: bump version
+   across workspaces, commit, tag, push — CI does the rest, no manual npm
+   step ever again.
 
 ## Future add-ons and capabilities
 

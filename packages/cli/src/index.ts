@@ -6,13 +6,14 @@ import { makeListCommand, makeShowCommand } from './commands/list';
 import { makeVerifyCommand } from './commands/verify';
 import { makeConfigCommand, makeTagCommand, makePropertyCommand } from './commands/config';
 import { makeDbCommand } from './commands/db';
+import packageJson from '../package.json';
 
 const program = new Command();
 
 program
   .name('archivault')
   .description('Upload and download files to/from AWS S3 with full metadata tracking')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 program.addCommand(makeUploadCommand());
 program.addCommand(makeDownloadCommand());

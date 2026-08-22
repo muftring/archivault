@@ -1,6 +1,10 @@
 {
   "name": "@archivault/cli",
   "version": "1.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/muftring/archivault.git"
+  },
   "engines": {
     "node": ">=22"
   },

@@ -146,9 +146,9 @@ entire `src/` tree; `npm pack --dry-run` caught it.
 requests a short-lived OIDC token (`permissions: id-token: write`) and
 `npm publish` exchanges it with the registry automatically. No long-lived
 `NPM_TOKEN` secret lives in the repo at all, so there's nothing to leak or
-rotate. Requires npm CLI ≥11.5.1 and Node ≥22.14.0 in that job specifically
-(pinned separately from the other jobs, which stay on Node 20 — no reason to
-touch what already works there).
+rotate. Requires npm CLI ≥11.5.1 and Node ≥22.14.0 — which became the
+occasion to formalize Node 22 as the project's one standard version
+everywhere (see below) rather than pinning it just for this one job.
 
 **Hard constraint, confirmed against npm's own `npm/cli` issue tracker
 (#8544, open, unresolved as of this writing):** trusted publishing can only
@@ -210,8 +210,40 @@ Triggered on `v*` tags. Four jobs:
 
 The workflow's config was validated as far as a sandboxed, no-network-access
 environment allows (version/platform/arch resolution, icon config, asar
-unpacking) but **has never actually run on GitHub Actions** — see the
-release plan below.
+unpacking) before ever running for real. It has since run once for real
+(tag `v1.0.0`) — see the release plan below for what that run confirmed and
+what it caught.
+
+### Node version: standardized on 22, everywhere
+
+Before this, three different Node versions were in play across the project
+with nothing declaring any of them: local dev happened to work on whatever
+was installed (18.17.1, in the environment this was built in) purely
+because dependency majors were chosen to tolerate it; `verify`/
+`build-electron` used Node 20 in CI (picked early on to dodge some
+`@aws-sdk` sub-dependency `EBADENGINE` warnings that show up under 18); and
+`publish-npm` needed ≥22.14.0 once trusted publishing landed. None of this
+was written down anywhere — no `.nvmrc`, no `engines` field — so "what
+Node does this project need" had no real answer.
+
+Standardized on **Node 22** everywhere once trusted publishing forced the
+question: comfortably clears both the AWS SDK's ≥20 floor and trusted
+publishing's ≥22.14 floor, and is a current LTS. Concretely:
+- `.nvmrc` (`22`) at the repo root.
+- `"engines": { "node": ">=22" }` on the root `package.json` and every
+  workspace package — including `packages/cli`, so npm itself warns anyone
+  installing `@archivault/cli` on too old a Node.
+- All three CI jobs (`verify`, `build-electron`, `publish-npm`) now request
+  `node-version: 22` — one version story instead of three ad hoc ones.
+- `packages/cli`'s esbuild bundle target bumped from `node18` to `node22`
+  to match (was unnecessarily conservative once the `engines` floor moved).
+- `@types/node` bumped from `^20.0.0` to `^22.0.0` in all three packages,
+  so type-checking matches the real target instead of drifting from it.
+
+No dependency version choices needed to change for this — the majors
+picked earlier for Node 18 compatibility (Tailwind v3, vue-router v4,
+`@vitejs/plugin-vue` v5.2) work fine on 22 too; they just aren't required
+to avoid 22 the way they were required to avoid 20.
 
 ## Branding
 

@@ -2,6 +2,9 @@
   "name": "@archivault/electron",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && npm run build:renderer",
@@ -18,7 +21,7 @@
   "devDependencies": {
     "@lucide/vue": "^1.25.0",
     "@tanstack/vue-query": "^5.101.4",
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "autoprefixer": "^10.5.4",
     "concurrently": "^8.2.2",

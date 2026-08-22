@@ -63,6 +63,8 @@ Additional costs:
 
 ## Installation
 
+Requires Node.js ≥22 (see `.nvmrc`).
+
 ```bash
 git clone <repo>
 cd archivault

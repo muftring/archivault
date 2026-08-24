@@ -8,7 +8,7 @@ Upload and download files to/from AWS S3 with full metadata tracking, integrity 
 packages/
   core/       Shared library: S3 ops, database, checksums, file metadata
   cli/        Command-line interface (archivault)
-  electron/   Desktop GUI (Electron + React)
+  electron/   Desktop GUI (Electron + Vue)
 ```
 
 **Storage**: Files are stored in S3 under randomly generated `UUID/UUID` keys (no predictable patterns, good prefix distribution). Every upload is tracked in a database with SHA256 checksums, tags, arbitrary name-value properties, and an optional uploader identity.
@@ -63,15 +63,28 @@ Additional costs:
 
 ## Installation
 
+### CLI
+
+```bash
+npm install -g @archivault/cli
+archivault --version
+```
+
+### Desktop app
+
+Download the installer for your platform from the [latest release](https://github.com/muftring/archivault/releases/latest) — `.dmg` (mac), `.exe` (Windows), or `.AppImage` (Linux). Builds are unsigned today, so macOS/Windows will show an "unidentified developer" warning on first launch — right-click → Open (mac), or "More info → Run anyway" (Windows).
+
+### From source (contributors)
+
 Requires Node.js ≥22 (see `.nvmrc`).
 
 ```bash
-git clone <repo>
+git clone https://github.com/muftring/archivault.git
 cd archivault
 npm install
 npm run build
 
-# Install CLI globally
+# Install CLI globally, linked to your local checkout
 npm link --workspace=packages/cli
 ```
 
@@ -334,6 +347,11 @@ Tests use Vitest with an in-memory SQLite database — no external services requ
 ## Electron App
 
 ```bash
+# First run (and after upgrading the electron dependency): rebuild the
+# native module for Electron's Node ABI — it differs from your system Node
+# and better-sqlite3 will fail to load until this runs.
+npm run rebuild --workspace=packages/electron
+
 npm run dev:electron
 ```
 
